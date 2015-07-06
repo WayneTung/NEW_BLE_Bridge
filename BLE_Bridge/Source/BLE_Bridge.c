@@ -400,6 +400,7 @@ uint16 BLE_Bridge_ProcessEvent( uint8 task_id, uint16 events )
     {
       osal_start_timerEx( BLE_Bridge_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
     }
+    BLE_Bridge_SendEvent();
     /*
     // Perform periodic application task
     if( connected_flag == TRUE)
@@ -635,7 +636,7 @@ uint8 BLE_Bridge_SendEvent( void )
       msgPtr->event = KEY_CHANGE;
       //msgPtr->state = state;
 
-      osal_msg_send( BLE_Bridge_TaskID, (uint8 *)msgPtr );
+      osal_msg_send( serialInterface_TaskID, (uint8 *)msgPtr );
     }
     return ( SUCCESS );
 
