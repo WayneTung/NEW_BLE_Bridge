@@ -56,6 +56,9 @@ static void SerialInterface_ProcessOSALMsg( osal_event_hdr_t *pMsg )
 {
   switch ( pMsg->event )
   {
+  case KEY_CHANGE:
+      while (sendDataToHost("s,dB,sendEvent,e\n", 16));
+      break;
   default:
     // do nothing
     break;

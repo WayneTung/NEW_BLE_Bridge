@@ -199,6 +199,9 @@ static void performPeriodicTask( void );
 // << Wayne >> << RepeatCmd  >> ++
 static void repeatCmdSendData(uint8* data, uint8 len);
 // << Wayne >> << RepeatCmd  >>  --
+// << Wayne >> << ProcessOSALMSG >> ++
+uint8 BLE_Bridge_SendEvent( void );
+// << Wayne >> << ProcessOSALMSG >> --
 /*********************************************************************
  * PROFILE CALLBACKS
  */
@@ -619,3 +622,22 @@ static void repeatCmdSendData(uint8* data, uint8 len)
   GATT_Notification(0, &noti, FALSE);
 }
 // << Wayne >> << RepeatCmd >> --
+// 
+// << Wayne >> << ProcessOSALMSG >> ++
+uint8 BLE_Bridge_SendEvent( void )
+{
+    osal_event_hdr_t *msgPtr;
+
+    // Send the address to the task
+    msgPtr = (osal_event_hdr_t *)osal_msg_allocate( sizeof(osal_event_hdr_t) );
+    if ( msgPtr )
+    {
+      msgPtr->event = KEY_CHANGE;
+      //msgPtr->state = state;
+
+      osal_msg_send( BLE_Bridge_TaskID, (uint8 *)msgPtr );
+    }
+    return ( SUCCESS );
+
+}
+// << Wayne >> << ProcessOSALMSG >> --
