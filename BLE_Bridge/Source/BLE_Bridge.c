@@ -181,6 +181,12 @@ static uint8 advertData[] =
   0x02,   // length of this data
   GAP_ADTYPE_FLAGS,
   DEFAULT_DISCOVERABLE_MODE | GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
+
+  // << Wayne >> << Advert UUID >> ++
+  0x11,   // length of this data
+  GAP_ADTYPE_128BIT_MORE,      // some of the UUID's, but not all
+  dB_UUID(0xFFDB),
+  /// << Wayne >> << Advert UUID >> --
 };
 
 // GAP GATT Attributes
