@@ -99,7 +99,7 @@
 #define DEFAULT_DESIRED_SLAVE_LATENCY         0
 
 // Supervision timeout value (units of 10ms, 1000=10s) if automatic parameter update request is enabled
-#define DEFAULT_DESIRED_CONN_TIMEOUT          200
+#define DEFAULT_DESIRED_CONN_TIMEOUT          500
 
 // Connection Pause Peripheral time value (in seconds)
 #define DEFAULT_CONN_PAUSE_PERIPHERAL         6
@@ -111,6 +111,11 @@
 
 // Length of bd addr as a string
 #define B_ADDR_STR_LEN                        15
+
+// << Wayne >> <<  Check Connect  >> ++
+ // How often to Check connect  deley event
+#define SBP_CHECK_CONNECT_TIMEOUT_DELAY   10000
+ // << Wayne >> <<  Check Connect  >> --
 
 /*********************************************************************
  * TYPEDEFS
@@ -136,10 +141,6 @@ extern void sendTestData(void);
 static uint8 BLE_Bridge_TaskID;   // Task ID for internal task/event processing
 
 static bool connected_flag = FALSE;  //whether to try to send data or not from SerialBuffer
-
-// << Wayne >> << Disconnect Notify >> ++
-static bool dB_connected_flag = FALSE;  // When Connect change to Disconnect will Notify Device
-// << Wayne >> << Disconnect Notify >> --
 
 static uint16 buffer_tail = 0;  //last data byte sent from SerialBuffer
 
@@ -314,6 +315,7 @@ void BLE_Bridge_Init( uint8 task_id )
   
   // Setup a delayed profile startup
   osal_set_event( BLE_Bridge_TaskID, SBP_START_DEVICE_EVT );
+
 }
 
 /*********************************************************************
@@ -368,6 +370,12 @@ uint16 BLE_Bridge_ProcessEvent( uint8 task_id, uint16 events )
     return ( events ^ SBP_START_DEVICE_EVT );
   }
 
+  if ( events & SBP_CON_EVT )
+  {
+      while (sendDataToHost("s,dB,connect,e\n", 15));
+      //osal_start_timerEx( BLE_Bridge_TaskID, SBP_Check_Connect_EVT, SBP_CHECK_CONNECT_TIMEOUT_DELAY ); 
+      return (events ^ SBP_CON_EVT);
+  }
   if ( events & SBP_SEND_EVT )
   {
     // Restart timer
@@ -413,23 +421,22 @@ uint16 BLE_Bridge_ProcessEvent( uint8 task_id, uint16 events )
     */
     return (events ^ SBP_PERIODIC_EVT);
   }
-
 // << Wayne >> << Periodic event >>  --
 
   if( events & SBP_ADV_EVT )
   {
-
     // << Wayne >> << Disconnect Notify >> ++
-    if(dB_connected_flag)
-    {
-	dB_connected_flag = 0;
-	//keep trying to send data until it is a success. this may not be the desirable approach
-        while (sendDataToHost("s,dB,disconnect,e\n", 18));
-    }
-        // << Wayne >> << Disconnect Notify >> --
+    //keep trying to send data until it is a success. this may not be the desirable approach
+    while (sendDataToHost("s,dB,disconnect,e\n", 18));
+    // << Wayne >> << Disconnect Notify >> --
     return ( events ^ SBP_ADV_EVT );	
   }
 
+  if( events & SBP_Check_Connect_EVT )
+  {
+    GAPRole_TerminateConnection();
+    return ( events ^ SBP_Check_Connect_EVT );  
+  }
   // Discard unknown events
   return 0;
 }
@@ -469,18 +476,22 @@ static void peripheralStateNotificationCB( gaprole_States_t newState )
     case GAPROLE_ADVERTISING:
       {
         connected_flag = FALSE;	
-	// << Wayne >> << test >> ++
-	HCI_EXT_AdvEventNoticeCmd(BLE_Bridge_TaskID,SBP_ADV_EVT );
-	// << Wayne >> << test >> --
+	// << Wayne >> << Disconnect Notify >> ++
+       osal_set_event( BLE_Bridge_TaskID, SBP_ADV_EVT );
+	// << Wayne >> << Disconnect Notify >> --
+      // << Wayne >> <<  Check Connect  >> ++ 
+      osal_stop_timerEx( BLE_Bridge_TaskID, SBP_Check_Connect_EVT ); 
+      // << Wayne >> <<  Check Connect  >> --
       }
       break;
 
     case GAPROLE_CONNECTED:
       {
+
         connected_flag = TRUE;
-	// << Wayne >> << Disconnect Notify >> ++
-	dB_connected_flag = TRUE;
-	// << Wayne >> << Disconnect Notify >> --
+      // << Wayne >> <<  Check Connect  >> ++
+      osal_start_timerEx( BLE_Bridge_TaskID, SBP_Check_Connect_EVT, SBP_CHECK_CONNECT_TIMEOUT_DELAY ); 
+      // << Wayne >> <<  Check Connect  >> --
       }
       break;
 
@@ -507,6 +518,9 @@ static void simpleProfileChangeCB( uint8 paramID )
   switch( paramID )
   {
     case SIMPLEPROFILE_CHAR3:
+      // << Wayne >> <<  Check Connect  >> ++
+      osal_start_timerEx( BLE_Bridge_TaskID, SBP_Check_Connect_EVT, SBP_CHECK_CONNECT_TIMEOUT_DELAY ); 
+      // << Wayne >> <<  Check Connect  >> --
       SimpleProfile_GetParameter( SIMPLEPROFILE_CHAR3, &data );
       len = data[0];
       // << Wayne >> << RepeatCmd >> ++

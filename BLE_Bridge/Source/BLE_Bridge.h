@@ -56,10 +56,14 @@ extern "C"
 #define SBP_PERIODIC_EVT                                         0x0002
 #define SBP_ADV_IN_CONNECTION_EVT                         0x0004
 #define SBP_SEND_EVT                                      0x0008
-
+#define SBP_CON_EVT                                       0x0010
+// 
 // << Wayne >> << test >> ++
-#define SBP_ADV_EVT                                       0x0010
+#define SBP_ADV_EVT                                       0x0100
 // << Wayne >> << test >> --  
+// << Wayne >> <<  Check Connect  >> ++
+#define SBP_Check_Connect_EVT                  0x0200
+// << Wayne >> << Check Connect>> --
 // << Wayne >> << 128-bit UUID >> ++
 #define dB_UUID(uuid)       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x10, 0xDD, LO_UINT16(uuid), HI_UINT16(uuid), 0x10, 0xF5 
 // << Wayne >> << 128-bit UUID >> --
